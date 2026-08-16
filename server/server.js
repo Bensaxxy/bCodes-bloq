@@ -13,42 +13,54 @@ import commentRouter from "./routes/commentRoutes.js";
 import adminRouter from "./routes/adminRoutes.js";
 
 const app = express();
-app.use(helmet());
+
 const port = process.env.PORT || 4000;
-connectDB();
 
-const allowedOrigins = [process.env.FRONTEND_URL];
-app.use(express.json());
+// Security
+app.use(helmet());
 
-app.use(cookieParser());
+// CORS
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: process.env.FRONTEND_URL,
     credentials: true,
   }),
 );
 
-// API Endpoints
+// Body parser
+app.use(express.json());
+
+// Cookies
+app.use(cookieParser());
+
 // Root endpoint
 app.get("/", (req, res) => {
-  res.send("Welcome to the bCodes - bloq");
+  res.json({
+    success: true,
+    message: "Welcome to the bCodes - bloq API",
+  });
 });
 
-// Authentication routes
+// API routes
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/posts", postRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/comments", commentRouter);
-
 app.use("/api/admin", adminRouter);
 
-app.listen(port, "0.0.0.0", () =>
-  console.log(`Server is running on port ${port}`),
-);
+// Start server only after MongoDB connects
+const startServer = async () => {
+  try {
+    await connectDB();
+
+    app.listen(port, "0.0.0.0", () => {
+      console.log(`Server is running on port ${port}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
+};
+
+startServer();
